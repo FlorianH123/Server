@@ -22,15 +22,15 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
     char* buffer = NULL;
 
     char* arg;
-
+    char delimiter[] = "-, ";
     int nBytes = 0, n = 0, c = 0;
     FILE *fp;
 
-    memset(buffer, '\0', sizeof(buffer));
+    //memset(buffer, '\0', sizeof(buffer));
     send(workerSocketDescriptor, usage, strlen(usage), 0);
     recv(workerSocketDescriptor, buffer, buffer_len, 0);
 
-    nBytes = atoi(strtok(buffer, "-"));
+    nBytes = atoi(strtok(buffer, delimiter));
     char charArray[nBytes + 1];
     arg = strtok(NULL, "-");
 
@@ -47,10 +47,10 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
                 n++;
             }
             *charArray = '\0';
-            send(workerSocketDescriptor, (const char *) charArray, nBytes, 0);
+            send(workerSocketDescriptor, (const char *) charArray, nBytes + 1, 0);
         }
 
-        arg = strtok(NULL, "-");
+        arg = strtok(NULL, delimiter);
     }
 }
 
