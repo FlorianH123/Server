@@ -11,13 +11,13 @@ void readFile(SOCKET);
 /*--- Ende Protofunktionen ---*/
 
 /*--- Konstanten ---*/
-const char* usage = "Geben Sie max. 5 Dateinamen (mit -) und die Anzahl der ersten n "
-        "Bytes an, die Sie gesndet haben wollen";
+const char* usage = "Geben Sie die Anzahl der ersten n Bytes (-<n Bytes>) und max. 5 Dateinamen (mit -) an,"
+        " die Sie erhalten wollen";
 
 const char* fileNotFoundException = "Die Datei wurde nicht gefunden!";
 /*--- Ende Konstanten ---*/
 
-void readFile(SOCKET workerSocketDescriptor) {
+void readFileAndSendData(SOCKET workerSocketDescriptor) {
     char* buffer = NULL;
     int buffer_len = 250, nBytes = 0, n = 0, c = 0;
     char* arg;
