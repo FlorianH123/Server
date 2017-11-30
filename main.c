@@ -12,9 +12,9 @@ void readFileAndSendData(SOCKET);
 
 /*--- Konstanten ---*/
 const char* usage = "Geben Sie die Anzahl der ersten n Bytes (-<n Bytes>) und max. 5 Dateinamen (mit -) an,"
-        " die Sie erhalten wollen";
+        " die Sie erhalten wollen\n";
 
-const char* fileNotFoundException = "Die Datei wurde nicht gefunden!";
+const char* fileNotFoundException = "Die Datei wurde nicht gefunden!\n";
 /*--- Ende Konstanten ---*/
 
 void readFileAndSendData(SOCKET workerSocketDescriptor) {
