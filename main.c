@@ -5,10 +5,50 @@
 #define QUEUELENGTH 5
 #define STANDARD_PORT 5193
 
+/*--- Protofunktionen --- */
+void readFile(SOCKET);
+
+/*--- Ende Protofunktionen ---*/
+
+/*--- Konstanten ---*/
 const char* usage = "Geben Sie max. 5 Dateinamen (mit -) und die Anzahl der ersten n "
         "Bytes an, die Sie gesndet haben wollen";
 
 const char* fileNotFoundException = "Die Datei wurde nicht gefunden!";
+/*--- Ende Konstanten ---*/
+
+void readFile(SOCKET workerSocketDescriptor) {
+    char* buffer = NULL;
+    int buffer_len = 250, nBytes = 0, n = 0, c = 0;
+    char* arg;
+    FILE *fp;
+
+    send(workerSocketDescriptor, usage, strlen(usage), 0);
+    recv(workerSocketDescriptor, buffer, buffer_len, 0);
+
+    nBytes = atoi(strtok(buffer, "-"));
+    char charArray[nBytes + 1];
+    arg = strtok(NULL, "-");
+
+    while (arg != NULL) {
+        fp = fopen("arg", "r");
+
+        if (fp == NULL) {
+            send(workerSocketDescriptor, fileNotFoundException, strlen(fileNotFoundException), 0);
+        } else {
+            while (n <= nBytes) {
+                c = fgetc(fp);
+                *charArray = (char) c;
+                *charArray++;
+                n++;
+            }
+            *charArray = '\0';
+            send(workerSocketDescriptor, (const char *) charArray, nBytes, 0);
+        }
+
+        arg = strtok(NULL, "-");
+    }
+}
 
 int main() {
     int port = STANDARD_PORT; /* Protokoll-Portnummer */
@@ -51,38 +91,5 @@ int main() {
         }
 
         readFile(workerSocketDescriptor);
-    }
-}
-
-void readFile(SOCKET workerSocketDescriptor) {
-    char* buffer = NULL;
-    int buffer_len = 250, nBytes = 0, n = 0, c = 0;
-    char* arg;
-    FILE *fp;
-
-    send(workerSocketDescriptor, usage, strlen(usage), 0);
-    recv(workerSocketDescriptor, buffer, buffer_len, 0);
-
-    nBytes = atoi(strtok(buffer, "-"));
-    char charArray[nBytes + 1];
-    arg = strtok(NULL, "-");
-
-    while (arg != NULL) {
-        fp = fopen("arg", "r");
-
-        if (fp == NULL) {
-            send(workerSocketDescriptor, fileNotFoundException, strlen(fileNotFoundException), 0);
-        } else {
-            while (n <= nBytes) {
-                c = fgetc(fp);
-                *charArray = (char) c;
-                *charArray++;
-                n++;
-            }
-            *charArray = '\0';
-            send(workerSocketDescriptor, (const char *) charArray, nBytes, 0);
-        }
-
-        arg = strtok(NULL, "-");
     }
 }
