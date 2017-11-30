@@ -35,7 +35,7 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
     arg = strtok(NULL, "-");
 
     while (arg != NULL) {
-        fp = fopen("arg", "r");
+        fp = fopen(arg, "r");
 
         if (fp == NULL) {
             send(workerSocketDescriptor, fileNotFoundException, strlen(fileNotFoundException), 0);
