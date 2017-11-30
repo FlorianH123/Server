@@ -99,6 +99,7 @@ int main() {
         }
 
         readFileAndSendData(workerSocketDescriptor);
+        closesocket(workerSocketDescriptor);
     }
 }
 
