@@ -26,6 +26,7 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
     int nBytes = 0, n = 0, c = 0;
     FILE *fp;
 
+    memset(buffer, '\0', sizeof(buffer));
     send(workerSocketDescriptor, usage, strlen(usage), 0);
     recv(workerSocketDescriptor, buffer, buffer_len, 0);
 
