@@ -31,12 +31,13 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
     recv(workerSocketDescriptor, buffer, buffer_len, 0);
 
     nBytes = atoi(strtok(buffer, delimiter));
-    char charArray[nBytes + 1];
+
+
     arg = strtok(NULL, "-");
 
     while (arg != NULL) {
         fp = fopen(arg, "r");
-
+        char charArray[nBytes + 1];
         if (fp == NULL) {
             send(workerSocketDescriptor, fileNotFoundException, strlen(fileNotFoundException), 0);
         } else {
@@ -48,6 +49,9 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
             }
             *charArray = '\0';
             send(workerSocketDescriptor, (const char *) charArray, nBytes + 1, 0);
+            fclose(fp);
+            n = 0;
+
         }
 
         arg = strtok(NULL, delimiter);
