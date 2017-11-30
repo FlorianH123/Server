@@ -6,7 +6,7 @@
 #define STANDARD_PORT 5193
 
 /*--- Protofunktionen --- */
-void readFile(SOCKET);
+void readFileAndSendData(SOCKET);
 
 /*--- Ende Protofunktionen ---*/
 
@@ -18,9 +18,12 @@ const char* fileNotFoundException = "Die Datei wurde nicht gefunden!";
 /*--- Ende Konstanten ---*/
 
 void readFileAndSendData(SOCKET workerSocketDescriptor) {
+    const int buffer_len = 250;
     char* buffer = NULL;
-    int buffer_len = 250, nBytes = 0, n = 0, c = 0;
+
     char* arg;
+
+    int nBytes = 0, n = 0, c = 0;
     FILE *fp;
 
     send(workerSocketDescriptor, usage, strlen(usage), 0);
@@ -90,6 +93,6 @@ int main() {
             exit(6);
         }
 
-        readFile(workerSocketDescriptor);
+        readFileAndSendData(workerSocketDescriptor);
     }
 }
