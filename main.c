@@ -1,72 +1,88 @@
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <ws2tcpip.h>
-#include <stdint.h>
+#include <stdio.h>
+#include <winsock2.h>
 
 #define QUEUELENGTH 5
-#define STANDARD_PROTO_PORT 5193
+#define STANDARD_PORT 5193
+
+const char* usage = "Geben Sie max. 5 Dateinamen (mit -) und die Anzahl der ersten n "
+        "Bytes an, die Sie gesndet haben wollen";
+
+const char* fileNotFoundException = "Die Datei wurde nicht gefunden!";
 
 int main() {
-    struct protoent *ptrp ;      /* Zeiger auf einen Eintrag in Protokolltabelle */
-    struct sockaddr_in sad;      /* Struktur fuer die Serveradresse */
-    struct sockaddr_in cad;      /* Struktur fuer die Clientadresse */
+    int port = STANDARD_PORT; /* Protokoll-Portnummer */
+
+    struct sockaddr_in serveraddr;  /* Struktur fuer die Serveradresse */
+    struct sockaddr_in clientaddr;  /* Struktur fuer die Clientadresse */
+
+    serveraddr.sin_family = AF_INET;             /* Familie auf Internet setzen */
+    serveraddr.sin_port = htons((u_short) port);  /* host-byte-order -> network byte-order */
+    serveraddr.sin_addr.s_addr = INADDR_ANY;     /* Lokale IP-Adressen setzen */
+
     SOCKET workerSocketDescriptor;
     SOCKET serverSocketDescriptor;
 
-    int port = STANDARD_PROTO_PORT; /* Protokoll-Portnummer */
-    socklen_t alen;              /* Laenge der Adresse */
-    char buf[1000];              /* Puffer fuer die vom Server gesendeten Daten */
+    /* Socket erzeugen */
+    serverSocketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
 
-    memset((char *)&sad, 0, sizeof(sad)); /* sockaddr-Struktur leeren */
-
-    sad.sin_family = AF_INET;             /* Familie auf Internet setzen */
-    sad.sin_addr.s_addr = INADDR_ANY;     /* Lokale IP-Adressen setzen */
-    sad.sin_port = htons((uint16_t)port);  /* host-byte-order -> network byte-order */
-
-
-/* Name.von TCP-Transportprotokoll in Nummer umwandeln */
-
-    if ( (ptrp = getprotobyname("tcp")) == NULL)
-    {
-        fprintf(stderr, "cannot map \"tcp\" to protocol number");
-        exit(2);
-    }
-
-/* Socket erzeugen */
-    serverSocketDescriptor = socket(PF_INET, SOCK_STREAM, ptrp->p_proto);
-    if (serverSocketDescriptor < 0)
-    {
+    if (serverSocketDescriptor < 0) {
         fprintf(stderr, "socket creation failed\n");
         exit(3);
     }
 
-/* Lokale Adresse mit Socket binden */
-    if (bind(serverSocketDescriptor, (struct sockaddr *)&sad, sizeof(sad)) < 0)
-    {
+    /* Lokale Adresse mit Socket binden */
+    if (bind(serverSocketDescriptor, (struct sockaddr*) &serveraddr, sizeof(serveraddr)) < 0) {
         fprintf(stderr, "bind failed\n");
         exit(4);
     }
 
-/* Groesse der Anfragewarteschlange bestimmen */
-    if (listen(serverSocketDescriptor, QUEUELENGTH) < 0)
-    {
+    /* Groesse der Anfragewarteschlange bestimmen */
+    if (listen(serverSocketDescriptor, QUEUELENGTH) < 0) {
         fprintf(stderr, "listen failed\n");
         exit(5);
     }
 
     while(1) {
-        alen = sizeof(cad);
-        if ( (workerSocketDescriptor = accept(serverSocketDescriptor, (struct sockaddr *)&cad, &alen)) < 0)
-        {
+        if ((workerSocketDescriptor = accept(serverSocketDescriptor, (struct sockaddr *)&clientaddr,
+                                             (int *) sizeof clientaddr)) < 0) {
             fprintf(stderr, "accept failed\n");
             exit(6);
         }
 
-        send(workerSocketDescriptor, buf, strlen(buf), 0);
-        closesocket(workerSocketDescriptor);
+        readFile(workerSocketDescriptor);
+    }
+}
+
+void readFile(SOCKET workerSocketDescriptor) {
+    char* buffer = NULL;
+    int buffer_len = 250, nBytes = 0, n = 0, c = 0;
+    char* arg;
+    FILE *fp;
+
+    send(workerSocketDescriptor, usage, strlen(usage), 0);
+    recv(workerSocketDescriptor, buffer, buffer_len, 0);
+
+    nBytes = atoi(strtok(buffer, "-"));
+    char charArray[nBytes + 1];
+    arg = strtok(NULL, "-");
+
+    while (arg != NULL) {
+        fp = fopen("arg", "r");
+
+        if (fp == NULL) {
+            send(workerSocketDescriptor, fileNotFoundException, strlen(fileNotFoundException), 0);
+        } else {
+            while (n <= nBytes) {
+                c = fgetc(fp);
+                *charArray = (char) c;
+                *charArray++;
+                n++;
+            }
+            *charArray = '\0';
+            send(workerSocketDescriptor, (const char *) charArray, nBytes, 0);
+        }
+
+        arg = strtok(NULL, "-");
     }
 }
