@@ -1,14 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef __unix__
-    #include <sys/types.h>
-    #include <sys/socket.h>
-#elif __WIN32__ || _MSC_VER
-    #include <winsock2.h>
-#endif
+#include <winsock2.h>
 
 #define QUEUELENGTH 5
-#define STANDARD_PORT 5193
+#define STANDARD_PORT 32000
 
 /*--- Protofunktionen --- */
 void readFileAndSendData(SOCKET);
@@ -56,17 +51,21 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
 
         arg = strtok(NULL, delimiter);
     }
+
+    closesocket(workerSocketDescriptor);
 }
 
 int main() {
-    int port = STANDARD_PORT; /* Protokoll-Portnummer */
+    int port = STANDARD_PORT;
 
-    struct sockaddr_in serveraddr;  /* Struktur fuer die Serveradresse */
-    struct sockaddr_in clientaddr;  /* Struktur fuer die Clientadresse */
+    struct sockaddr_in serveraddr;
+    struct sockaddr_in clientaddr;
 
-    serveraddr.sin_family = AF_INET;             /* Familie auf Internet setzen */
-    serveraddr.sin_port = htons((u_short) port);  /* host-byte-order -> network byte-order */
-    serveraddr.sin_addr.s_addr = INADDR_ANY;     /* Lokale IP-Adressen setzen */
+    memset(&serveraddr, 0, sizeof(serveraddr));
+
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_port = htons(32000);
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     SOCKET workerSocketDescriptor;
     SOCKET serverSocketDescriptor;
@@ -99,7 +98,6 @@ int main() {
         }
 
         readFileAndSendData(workerSocketDescriptor);
-        closesocket(workerSocketDescriptor);
     }
 }
 
