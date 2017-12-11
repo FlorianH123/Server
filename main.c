@@ -1,31 +1,32 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <winsock2.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <string.h>
+#include <netinet/in.h>
 
 #define QUEUELENGTH 5
 #define STANDARD_PORT 32000
 
 /*--- Protofunktionen --- */
-void readFileAndSendData(SOCKET);
+void readFileAndSendData(int);
 
 /*--- Ende Protofunktionen ---*/
 
 /*--- Konstanten ---*/
-const char* fileNotFoundException = "Die Datei wurde nicht gefunden!\n";
+const char* fileNotFoundException = "Die Datei %s wurde nicht gefunden!\n";
 /*--- Ende Konstanten ---*/
 
-void readFileAndSendData(SOCKET workerSocketDescriptor) {
-    const int buffer_len = 250;
-    char* buffer = NULL;
+void readFileAndSendData(int workerSocketDescriptor) {
+    const int buffer_len = 255;
+    char buffer[buffer_len];
 
     char* arg;
     char delimiter[] = "-, ";
     int nBytes = 0, n = 0, c = 0;
     FILE *fp;
 
-    //memset(buffer, '\0', sizeof(buffer));
     recv(workerSocketDescriptor, buffer, buffer_len, 0);
-
     nBytes = atoi(strtok(buffer, delimiter));
     arg = strtok(NULL, delimiter);
 
@@ -34,8 +35,7 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
         char charArray[nBytes + 1];
 
         if (fp == NULL) {
-            send(workerSocketDescriptor, fileNotFoundException, strlen(fileNotFoundException), 0);
-            fprintf(stderr, "Datei %s nicht gefunden\n", arg);
+            send(workerSocketDescriptor, strcat(strcat("Die Datei ", arg), " wurde nicht gefunden!"), strlen(fileNotFoundException), 0);
         } else {
             while (n < nBytes && (c = fgetc(fp)) != EOF) {
                 charArray[n] = (char) c;
@@ -43,7 +43,7 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
             }
 
             charArray[n] = '\0';
-            send(workerSocketDescriptor, (const char *) charArray, nBytes + 1, 0);
+            send(workerSocketDescriptor, charArray, nBytes + 1, 0);
 
             fclose(fp);
             n = 0;
@@ -52,23 +52,18 @@ void readFileAndSendData(SOCKET workerSocketDescriptor) {
         arg = strtok(NULL, delimiter);
     }
 
-    closesocket(workerSocketDescriptor);
+    close(workerSocketDescriptor);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     int port = STANDARD_PORT;
 
+    socklen_t client_length;
     struct sockaddr_in serveraddr;
     struct sockaddr_in clientaddr;
 
-    memset(&serveraddr, 0, sizeof(serveraddr));
-
-    serveraddr.sin_family = AF_INET;
-    serveraddr.sin_port = htons(32000);
-    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    SOCKET workerSocketDescriptor;
-    SOCKET serverSocketDescriptor;
+    int workerSocketDescriptor;
+    int serverSocketDescriptor;
 
     /* Socket erzeugen */
     serverSocketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -77,6 +72,13 @@ int main() {
         fprintf(stderr, "socket creation failed\n");
         exit(3);
     }
+
+    bzero((char *) &serveraddr, sizeof(serveraddr));
+
+    port = atoi(argv[1]);
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = INADDR_ANY;
+    serveraddr.sin_port = htons(port);
 
     /* Lokale Adresse mit Socket binden */
     if (bind(serverSocketDescriptor, (struct sockaddr*) &serveraddr, sizeof(serveraddr)) < 0) {
@@ -90,14 +92,16 @@ int main() {
         exit(5);
     }
 
-    while(1) {
-        if ((workerSocketDescriptor = accept(serverSocketDescriptor, (struct sockaddr *)&clientaddr,
-                                             (int *) sizeof clientaddr)) < 0) {
-            fprintf(stderr, "accept failed\n");
-            exit(6);
-        }
+    client_length = sizeof(clientaddr);
 
+    while((workerSocketDescriptor = accept(serverSocketDescriptor,
+                                           (struct sockaddr*) &clientaddr, &client_length)) > 0) {
         readFileAndSendData(workerSocketDescriptor);
     }
-}
 
+
+    if (workerSocketDescriptor < 0) {
+        fprintf(stderr, "Fehler beim Accept");
+        exit(6);
+    }
+}
